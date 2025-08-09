@@ -24,7 +24,7 @@ pip install -r requirements.txt
 
 ```env
 JOTFORM_API_KEY=tu_api_key_aqui
-FORM_ID=252103748882057
+FORM_ID=tu_form_id_aqui
 GMAIL_USER=tu_email@gmail.com
 GMAIL_PASSWORD=tu_app_password_aqui
 ```
