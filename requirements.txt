@@ -1,0 +1,6 @@
+requests>=2.28.0
+pandas>=1.5.0
+openpyxl>=3.0.10
+fuzzywuzzy>=0.18.0
+python-dotenv>=1.0.0
+python-Levenshtein>=0.20.0
