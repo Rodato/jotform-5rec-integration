@@ -1,15 +1,18 @@
 # JotForm 5REC Integration System
 
-Sistema automatizado para pre-llenar formularios JotForm del proyecto 5REC (Reporte Empresarial Consolidado) y enviar emails personalizados a organizaciones.
+Sistema automatizado para pre-llenar formularios JotForm del proyecto 5REC (Reporte Empresarial Consolidado) y enviar emails personalizados a organizaciones. **Compatible con cualquier formulario JotForm.**
 
 ## 🚀 Características Principales
 
 - ✅ **Pre-llenado automático** de 190+ campos del formulario
 - ✅ **Mapeo validado 1:1** sin duplicados ni conflictos  
 - ✅ **Envío automático de emails** con URLs personalizadas
+- ✅ **Imágenes corporativas embebidas** en emails (CID)
+- ✅ **Selección inteligente de archivos Excel** 
 - ✅ **Reportes detallados** de procesamiento
 - ✅ **Manejo robusto de errores** y validaciones
 - ✅ **100% éxito** confirmado en pruebas
+- ✅ **Sistema universal** - funciona con cualquier formulario JotForm
 
 ## 📋 Requisitos
 
@@ -32,12 +35,22 @@ GMAIL_PASSWORD=tu_app_password_aqui
 ## 🗂️ Estructura del Proyecto
 
 ```
-codigo/
-├── config.py                 # Configuración centralizada
-├── setup_validator.py        # Validador de configuración
-├── form_analyzer.py          # Analizador de formulario
-├── prefill_engine_v2.py      # ⭐ Motor principal de prefill
-└── todas_preguntas_*.json    # Estructura del formulario JotForm
+jotform-5rec-integration/
+├── src/
+│   ├── config.py                 # Configuración centralizada
+│   ├── setup_validator.py        # Validador de configuración
+│   ├── form_analyzer.py          # Analizador de formulario
+│   ├── prefill_engine_v2.py      # ⭐ Motor principal de prefill
+│   └── configure_email.py        # Configurador de email interactivo
+├── inputs/                       # 📁 Archivos Excel con datos de organizaciones
+│   └── README.md                 # Documentación de formato de datos
+├── outputs/                      # 📊 Reportes y archivos de mapeo generados
+│   └── README.md                 # Documentación de archivos de salida
+├── img/                          # 🖼️ Imágenes corporativas para emails
+│   └── README.md                 # Documentación de imágenes requeridas
+├── CLAUDE.md                     # Documentación para Claude Code
+├── .env.example                  # Plantilla de variables de entorno
+└── requirements.txt              # Dependencias Python
 ```
 
 ## 🚀 Uso Rápido
@@ -50,37 +63,50 @@ pip install -r requirements.txt
 ### 2. Configurar Variables de Entorno
 ```bash
 cp .env.example .env
-# Editar .env con tus credenciales
+# Editar .env con tus credenciales, o usar:
+cd src
+python3 configure_email.py  # Configurador interactivo
 ```
 
-### 3. Validar Configuración
+### 3. Preparar Datos e Imágenes
 ```bash
-cd codigo
+# Colocar archivos Excel en inputs/
+# Colocar imágenes corporativas en img/ (opcional)
+```
+
+### 4. Validar Configuración
+```bash
+cd src
 python3 setup_validator.py
 ```
 
-### 4. Ejecutar Sistema Completo
+### 5. Ejecutar Sistema Completo
 ```bash
 python3 prefill_engine_v2.py
+# El sistema detectará automáticamente archivos Excel disponibles
 ```
 
 ## 📊 Flujo de Trabajo
 
-1. **Carga datos** desde archivo Excel con información de organizaciones
-2. **Valida mapeo** de campos Excel ↔ JotForm (215 campos mapeados)
-3. **Crea submissions prefilled** usando JotForm API
-4. **Genera URLs únicas** de edición para cada organización
-5. **Envía emails HTML** profesionales con las URLs
-6. **Genera reportes** detallados de resultados
+1. **Detección automática** de archivos Excel en carpeta `inputs/`
+2. **Selección inteligente** de archivo (manual o automática)
+3. **Carga mapeo** desde archivos existentes o generación automática
+4. **Valida mapeo** de campos Excel ↔ JotForm (215+ campos)
+5. **Crea submissions prefilled** usando JotForm API
+6. **Genera URLs únicas** de edición para cada organización
+7. **Envía emails HTML** con imágenes corporativas embebidas
+8. **Genera reportes** detallados en outputs/
 
-## 📧 Formato de Email
+## 📧 Formato de Email Mejorado
 
 Los emails incluyen:
+- 🖼️ **Imágenes corporativas embebidas** (header y botón)
 - 🏢 Información personalizada de la organización
 - 📊 Número de campos pre-llenados
 - 🔗 URL única para completar el formulario
 - 📝 Instrucciones claras de uso
-- 🎨 Diseño HTML profesional
+- 🎨 Diseño HTML profesional responsive
+- ⚡ Compatibilidad CID para máxima compatibilidad con clientes de email
 
 ## 📈 Resultados Típicos
 
@@ -90,6 +116,12 @@ Los emails incluyen:
 - **Formatos:** Reportes en JSON y Excel
 
 ## 📋 Datos de Entrada
+
+### 📁 Directorio inputs/
+El sistema detecta automáticamente archivos `.xlsx` en la carpeta `inputs/`:
+- **Un archivo:** Selección automática
+- **Múltiples archivos:** Menú de selección interactivo
+- **Modo no-interactivo:** Selecciona el primero automáticamente
 
 ### Formato Excel Requerido
 El archivo Excel debe contener:
@@ -107,6 +139,19 @@ El archivo Excel debe contener:
 | fundacion@email.com   | FUNDACIÓN EJEMPLO            | FUNDACIÓN EJEMPLO                     |
 ```
 
+## 🖼️ Imágenes Corporativas
+
+### Directorio img/
+Para emails con branding corporativo, colocar en `img/`:
+- **Header:** `nombre_header.png` - Imagen superior del email (600px ancho recomendado)
+- **Botón:** `nombre_boton.png` - Botón visual para acceder al formulario (200-300px ancho)
+
+### Para 5REC específicamente:
+- `5REC Franja.png` - Header corporativo
+- `Imagen 5REC formulario.png` - Botón del formulario
+
+**Nota:** El sistema funciona sin imágenes, pero se ven mejor con ellas.
+
 ## 🔧 Troubleshooting
 
 ### Error: API Key inválido
@@ -116,9 +161,22 @@ JOTFORM_API_KEY=tu_api_key_correcto
 ```
 
 ### Error: No se encuentran datos
+- Verificar que el archivo Excel esté en `inputs/`
 - Verificar estructura del archivo Excel
 - Debe tener hoja "📊 DATOS PREFILL"
 - Con columnas requeridas correctamente nombradas
+
+### Error: No se encuentran archivos Excel
+```bash
+# Verificar carpeta inputs
+ls inputs/*.xlsx
+# Colocar archivos Excel en inputs/
+```
+
+### Error: Imágenes no aparecen en email
+- Verificar que las imágenes estén en `img/`
+- Verificar nombres correctos de archivos
+- El sistema funciona sin imágenes (modo texto)
 
 ### Error: Email no se envía
 ```bash
@@ -131,17 +189,21 @@ GMAIL_PASSWORD=tu_app_password  # App password, NO contraseña normal
 
 ### Scripts Disponibles
 
+- **`configure_email.py`** - Configurador interactivo de credenciales de email
 - **`setup_validator.py`** - Validación completa de configuración y conectividad
-- **`form_analyzer.py`** - Análisis detallado de estructura del formulario
-- **`prefill_engine_v2.py`** - Motor principal con workflow completo
+- **`form_analyzer.py`** - Análisis detallado de estructura del formulario y generación de mapeos
+- **`prefill_engine_v2.py`** - Motor principal con workflow completo y nuevas funcionalidades
 
 ### Arquitectura
 
 El sistema utiliza:
 - **JotForm Submissions API** para crear formularios pre-llenados
-- **Mapeo 1:1 validado** para eliminar duplicados y conflictos
+- **Detección automática de archivos** en carpetas estructuradas
+- **Mapeo inteligente** (SIMPLE_MAPPING o generación desde FORM_COMPLETE)
+- **Imágenes embebidas CID** para compatibilidad universal de email
 - **URLs de edición únicas** en lugar de parámetros GET
 - **Validaciones robustas** en cada paso del proceso
+- **Sistema universal** - adaptable a cualquier formulario JotForm
 
 ## 🤝 Contribuir
 

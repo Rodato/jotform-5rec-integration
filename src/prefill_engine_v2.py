@@ -7,9 +7,11 @@ import pandas as pd
 import requests
 import smtplib
 import json
+import base64
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 from pathlib import Path
 from config import JOTFORM_API_KEY, FORM_ID, GMAIL_USER, GMAIL_PASSWORD, SMTP_SERVER, SMTP_PORT, FROM_NAME
 
@@ -40,8 +42,10 @@ class PrefillEngineV2:
         print("🗺️  Cargando mapeo limpio validado...")
         
         try:
-            # Find latest clean mapping
+            # Find latest mapping files (try different formats)
             outputs_dir = Path("../outputs")
+            
+            # First try to find SIMPLE_MAPPING files
             mapping_files = list(outputs_dir.glob("SIMPLE_MAPPING_*.json"))
             
             if mapping_files:
@@ -53,16 +57,108 @@ class PrefillEngineV2:
                 print(f"✅ Mapeo cargado: {len(self.clean_mapping)} campos")
                 print(f"   Archivo: {latest_mapping.name}")
                 return True
-            else:
-                print("❌ No se encontró archivo de mapeo limpio")
-                return False
+            
+            # If no SIMPLE_MAPPING, try FORM_COMPLETE files
+            complete_files = list(outputs_dir.glob("FORM_COMPLETE_*.json"))
+            
+            if complete_files:
+                latest_complete = max(complete_files, key=lambda x: x.stat().st_mtime)
+                
+                with open(latest_complete, 'r', encoding='utf-8') as f:
+                    form_data = json.load(f)
+                
+                # Extract field mapping from complete form data
+                self.clean_mapping = {}
+                questions = form_data.get('questions', {})
+                
+                for qid, question in questions.items():
+                    # Skip non-input fields
+                    field_type = question.get('type', '')
+                    if field_type in ['control_head', 'control_pagebreak', 'control_button', 'control_fileupload']:
+                        continue
+                    
+                    # Use field name or text as mapping key
+                    field_name = question.get('name', '')
+                    field_text = question.get('text', '')
+                    
+                    if field_name:
+                        # Use field name as key for mapping
+                        self.clean_mapping[field_name] = qid
+                    elif field_text:
+                        # Use field text as key (clean it)
+                        clean_text = field_text.replace('\n', ' ').strip()[:50]  # Limit length
+                        self.clean_mapping[clean_text] = qid
+                
+                print(f"✅ Mapeo generado desde datos completos: {len(self.clean_mapping)} campos")
+                print(f"   Archivo: {latest_complete.name}")
+                print(f"   Campos mapeables: {list(self.clean_mapping.keys())[:5]}...")
+                return True
+            
+            print("❌ No se encontraron archivos de mapeo (SIMPLE_MAPPING o FORM_COMPLETE)")
+            return False
                 
         except Exception as e:
             print(f"❌ Error cargando mapeo: {e}")
             return False
     
-    def load_excel_data(self, excel_path="../inputs/TEST.xlsx"):
+    def find_excel_files(self):
+        """Find all Excel files in inputs directory"""
+        inputs_dir = Path("../inputs")
+        if not inputs_dir.exists():
+            print("❌ Directorio ../inputs no existe")
+            return []
+        
+        excel_files = list(inputs_dir.glob("*.xlsx"))
+        return [f for f in excel_files if not f.name.startswith('~')]  # Exclude temp files
+    
+    def select_excel_file(self):
+        """Select Excel file to process"""
+        excel_files = self.find_excel_files()
+        
+        if not excel_files:
+            print("❌ No se encontraron archivos .xlsx en la carpeta inputs/")
+            return None
+        
+        if len(excel_files) == 1:
+            selected_file = excel_files[0]
+            print(f"📊 Archivo Excel detectado: {selected_file.name}")
+            return selected_file
+        
+        # Multiple files - let user choose
+        print(f"📊 Se encontraron {len(excel_files)} archivos Excel:")
+        for i, file in enumerate(excel_files, 1):
+            print(f"   {i}. {file.name}")
+        
+        while True:
+            try:
+                choice = input("\nSelecciona el archivo a procesar (número): ").strip()
+                if not choice:
+                    # Default to first file if no input
+                    selected_file = excel_files[0]
+                    print(f"   Usando archivo por defecto: {selected_file.name}")
+                    return selected_file
+                
+                index = int(choice) - 1
+                if 0 <= index < len(excel_files):
+                    selected_file = excel_files[index]
+                    print(f"   Archivo seleccionado: {selected_file.name}")
+                    return selected_file
+                else:
+                    print(f"   ❌ Número inválido. Debe ser entre 1 y {len(excel_files)}")
+            except (ValueError, KeyboardInterrupt, EOFError):
+                # Handle non-interactive environments
+                selected_file = excel_files[0]
+                print(f"   🤖 Modo automático: usando {selected_file.name}")
+                return selected_file
+
+    def load_excel_data(self, excel_path=None):
         """Load and validate Excel data"""
+        if excel_path is None:
+            excel_file = self.select_excel_file()
+            if excel_file is None:
+                return False
+            excel_path = excel_file
+        
         print(f"📊 Cargando datos desde {excel_path}...")
         
         try:
@@ -152,9 +248,9 @@ class PrefillEngineV2:
             }
     
     def send_email(self, to_email, empresa, edit_url, mapped_fields):
-        """Send email with prefilled form URL"""
+        """Send email with prefilled form URL and embedded images"""
         
-        # Create email content
+        # Create email content (original structure with CID images)
         subject = f"Formulario 5REC Pre-llenado - {empresa}"
         
         html_body = f"""
@@ -162,6 +258,12 @@ class PrefillEngineV2:
         <head></head>
         <body>
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                
+                <!-- Header Image -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="cid:header_image" style="width: 100%; max-width: 600px; height: auto; display: block; margin: 0 auto;" alt="5REC Header">
+                </div>
+                
                 <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                     <h2 style="color: #2c5aa0; margin: 0;">🏢 Formulario 5REC</h2>
                     <p style="color: #666; margin: 5px 0 0 0;">Reporte Empresarial Consolidado</p>
@@ -179,12 +281,19 @@ class PrefillEngineV2:
                         <p style="margin: 0; color: #0066cc;">
                             <strong>🔗 Acceder al formulario:</strong>
                         </p>
-                        <a href="{edit_url}" 
-                           style="display: inline-block; background-color: #2c5aa0; color: white; 
-                                  padding: 12px 25px; text-decoration: none; border-radius: 5px; 
-                                  margin-top: 10px; font-weight: bold;">
-                            ▶️ Abrir Formulario Pre-llenado
-                        </a>
+                        <div style="text-align: center; margin: 15px 0;">
+                            <a href="{edit_url}" style="text-decoration: none; display: inline-block;">
+                                <img src="cid:button_image" style="max-width: 200px; height: auto; border: none;" alt="Acceder al Formulario 5REC">
+                            </a>
+                        </div>
+                        <div style="text-align: center; margin-top: 10px;">
+                            <a href="{edit_url}" 
+                               style="display: inline-block; background-color: #2c5aa0; color: white; 
+                                      padding: 12px 25px; text-decoration: none; border-radius: 5px; 
+                                      font-weight: bold;">
+                                ▶️ Abrir Formulario Pre-llenado
+                            </a>
+                        </div>
                     </div>
                     
                     <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
@@ -211,15 +320,43 @@ class PrefillEngineV2:
         """
         
         try:
-            # Create message
-            message = MIMEMultipart("alternative")
+            # Create message with related content for embedded images
+            message = MIMEMultipart("related")
             message["Subject"] = subject
             message["From"] = f"{FROM_NAME} <{self.email_config['email_user']}>"
             message["To"] = to_email
             
+            # Create alternative container for HTML content
+            msg_alternative = MIMEMultipart("alternative")
+            
             # Add HTML content
             html_part = MIMEText(html_body, "html")
-            message.attach(html_part)
+            msg_alternative.attach(html_part)
+            
+            # Attach the alternative container to main message
+            message.attach(msg_alternative)
+            
+            # Load and attach images with Content-ID
+            header_img_path = Path("../img/5REC Franja.png")
+            button_img_path = Path("../img/Imagen 5REC formulario.png")
+            
+            # Attach header image
+            if header_img_path.exists():
+                with open(header_img_path, 'rb') as f:
+                    img_data = f.read()
+                    img = MIMEImage(img_data)
+                    img.add_header('Content-ID', '<header_image>')
+                    img.add_header('Content-Disposition', 'inline', filename='5REC_Franja.png')
+                    message.attach(img)
+            
+            # Attach button image  
+            if button_img_path.exists():
+                with open(button_img_path, 'rb') as f:
+                    img_data = f.read()
+                    img = MIMEImage(img_data)
+                    img.add_header('Content-ID', '<button_image>')
+                    img.add_header('Content-Disposition', 'inline', filename='Imagen_5REC_formulario.png')
+                    message.attach(img)
             
             # Send email
             with smtplib.SMTP(self.email_config['smtp_server'], self.email_config['smtp_port']) as server:
