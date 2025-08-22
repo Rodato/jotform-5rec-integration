@@ -14,6 +14,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from pathlib import Path
 from config import JOTFORM_API_KEY, FORM_ID, GMAIL_USER, GMAIL_PASSWORD, SMTP_SERVER, SMTP_PORT, FROM_NAME
+from excel_generator import ExcelPrefillGenerator
 
 class PrefillEngineV2:
     """Motor de prefill optimizado usando mapeo limpio y API validada"""
@@ -36,6 +37,9 @@ class PrefillEngineV2:
         self.clean_mapping = {}
         self.excel_data = pd.DataFrame()
         self.results = []
+        
+        # Excel generator for output
+        self.excel_generator = ExcelPrefillGenerator()
         
     def load_clean_mapping(self):
         """Load validated clean mapping"""
@@ -247,8 +251,18 @@ class PrefillEngineV2:
                 'error': str(e)
             }
     
+    def load_image_as_base64(self, image_path):
+        """Load image and convert to base64 for inline embedding"""
+        try:
+            with open(image_path, 'rb') as f:
+                image_data = f.read()
+                return base64.b64encode(image_data).decode('utf-8')
+        except Exception as e:
+            print(f"⚠️  Error cargando imagen {image_path}: {e}")
+            return None
+    
     def send_email(self, to_email, empresa, edit_url, mapped_fields):
-        """Send email with prefilled form URL and embedded images"""
+        """Send email with prefilled form URL"""
         
         # Create email content (original structure with CID images)
         subject = f"Formulario 5REC Pre-llenado - {empresa}"
@@ -369,9 +383,10 @@ class PrefillEngineV2:
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
-    def process_all_organizations(self):
+    def process_all_organizations(self, send_emails=False):
         """Process all organizations in Excel data"""
         print(f"\n🚀 Procesando {len(self.excel_data)} organizaciones...")
+        print(f"📧 Modo envío de emails: {'ACTIVADO' if send_emails else 'DESACTIVADO - Solo generando tabla Excel'}")
         
         for idx, row in self.excel_data.iterrows():
             print(f"\n📋 Procesando organización {idx + 1}/{len(self.excel_data)}")
@@ -383,17 +398,10 @@ class PrefillEngineV2:
             print(f"   🏢 Empresa: {empresa}")
             print(f"   📧 Email: {email_destinatario}")
             
-            # Skip if no email
+            # Process even without email for Excel generation
             if pd.isna(email_destinatario) or not email_destinatario.strip():
-                print(f"   ⚠️  Sin email - omitiendo")
-                self.results.append({
-                    'empresa': empresa,
-                    'email': email_destinatario,
-                    'prefill_success': False,
-                    'email_success': False,
-                    'error': 'No email provided'
-                })
-                continue
+                print(f"   ⚠️  Sin email - procesando solo para tabla")
+                email_destinatario = 'Sin email'
             
             # Create prefilled submission
             print(f"   🔧 Creando submission prefilled...")
@@ -415,22 +423,25 @@ class PrefillEngineV2:
                 print(f"   ✅ Prefill exitoso - {prefill_result['mapped_fields']} campos")
                 print(f"   🔗 URL: {prefill_result['edit_url']}")
                 
-                # Send email
-                print(f"   📧 Enviando email...")
-                email_result = self.send_email(
-                    email_destinatario, 
-                    empresa, 
-                    prefill_result['edit_url'],
-                    prefill_result['mapped_fields']
-                )
-                
-                result_entry['email_success'] = email_result['success']
-                result_entry['email_error'] = email_result.get('error')
-                
-                if email_result['success']:
-                    print(f"   ✅ Email enviado exitosamente")
+                # Send email only if requested and email is valid
+                if send_emails and email_destinatario != 'Sin email':
+                    print(f"   📧 Enviando email...")
+                    email_result = self.send_email(
+                        email_destinatario, 
+                        empresa, 
+                        prefill_result['edit_url'],
+                        prefill_result['mapped_fields']
+                    )
+                    
+                    result_entry['email_success'] = email_result['success']
+                    result_entry['email_error'] = email_result.get('error')
+                    
+                    if email_result['success']:
+                        print(f"   ✅ Email enviado exitosamente")
+                    else:
+                        print(f"   ❌ Error email: {email_result['error']}")
                 else:
-                    print(f"   ❌ Error email: {email_result['error']}")
+                    print(f"   📊 Guardando para tabla Excel")
             
             else:
                 print(f"   ❌ Error prefill: {prefill_result['error']}")
@@ -497,13 +508,15 @@ class PrefillEngineV2:
             print(f"❌ Error generando reporte: {e}")
             return None
     
-    def run_complete_workflow(self):
+    def run_complete_workflow(self, send_emails=False, generate_excel=True):
         """Run complete prefill workflow"""
         print("=" * 70)
-        print("🚀 PREFILL ENGINE V2.0 - SISTEMA COMPLETO SIN ERRORES")
+        print("🚀 PREFILL ENGINE V2.0 - SISTEMA COMPLETO CON EXCEL")
         print("=" * 70)
         print(f"Formulario ID: {self.form_id}")
         print(f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"📧 Envío de emails: {'ACTIVADO' if send_emails else 'DESACTIVADO'}")
+        print(f"📊 Generación Excel: {'ACTIVADO' if generate_excel else 'DESACTIVADO'}")
         
         # Step 1: Load clean mapping
         if not self.load_clean_mapping():
@@ -516,12 +529,22 @@ class PrefillEngineV2:
             return False
         
         # Step 3: Process all organizations
-        results = self.process_all_organizations()
+        results = self.process_all_organizations(send_emails=send_emails)
         
-        # Step 4: Generate report
+        # Step 4: Generate reports
         report_file = self.generate_report()
         
-        # Step 5: Final summary
+        # Step 5: Generate Excel table if requested
+        excel_file = None
+        if generate_excel:
+            print(f"\n📊 Generando tabla Excel con links de prefill...")
+            excel_file = self.excel_generator.generate_prefill_excel(results, self.form_id)
+            
+            # Also generate email templates
+            template_file = self.excel_generator.generate_email_templates_file(results)
+            print(f"📝 Templates de email: {template_file}")
+        
+        # Step 6: Final summary
         successful_prefills = len([r for r in results if r['prefill_success']])
         successful_emails = len([r for r in results if r['email_success']])
         
@@ -531,12 +554,19 @@ class PrefillEngineV2:
         print(f"📊 RESUMEN FINAL:")
         print(f"   • Total organizaciones: {len(results)}")
         print(f"   • Prefills exitosos: {successful_prefills}")
-        print(f"   • Emails enviados: {successful_emails}")
+        
+        if send_emails:
+            print(f"   • Emails enviados: {successful_emails}")
+            print(f"   • Tasa éxito email: {successful_emails/len(results)*100:.1f}%")
+        
         print(f"   • Tasa éxito prefill: {successful_prefills/len(results)*100:.1f}%")
-        print(f"   • Tasa éxito email: {successful_emails/len(results)*100:.1f}%")
         
         if report_file:
-            print(f"\n📁 Reportes generados en ../outputs/")
+            print(f"\n📁 Reportes JSON generados en ../outputs/")
+        
+        if excel_file:
+            print(f"📊 Tabla Excel con links: {excel_file.name}")
+            print(f"💡 Usar la tabla Excel para enviar emails manualmente")
         
         print("=" * 70)
         
@@ -547,10 +577,28 @@ def main():
     engine = PrefillEngineV2()
     
     try:
-        success = engine.run_complete_workflow()
+        print("\n🔧 CONFIGURACIÓN DE EJECUCIÓN:")
+        print("1. Solo generar Excel (recomendado)")
+        print("2. Generar Excel + enviar emails")
+        
+        try:
+            mode = input("\nSelecciona modo (1 o 2, Enter para modo 1): ").strip()
+        except (KeyboardInterrupt, EOFError):
+            mode = "1"  # Default for non-interactive
+        
+        if mode == "2":
+            send_emails = True
+            print("📧 Modo: Generando Excel Y enviando emails")
+        else:
+            send_emails = False
+            print("📊 Modo: Solo generando Excel (sin envío de emails)")
+        
+        success = engine.run_complete_workflow(send_emails=send_emails, generate_excel=True)
         
         if success:
             print(f"\n🎉 ¡PREFILL ENGINE V2.0 EJECUTADO EXITOSAMENTE!")
+            if not send_emails:
+                print(f"💡 Revisa la tabla Excel generada para copiar links de prefill")
         else:
             print(f"\n❌ Problemas en la ejecución")
             

@@ -1,224 +1,182 @@
-# JotForm 5REC Integration System
+# JotForm 5REC Prefill Engine v2.0
 
-Sistema automatizado para pre-llenar formularios JotForm del proyecto 5REC (Reporte Empresarial Consolidado) y enviar emails personalizados a organizaciones. **Compatible con cualquier formulario JotForm.**
+Sistema automatizado de prefill para formularios JotForm del proyecto 5REC con generación de tabla Excel para envío manual de emails.
 
 ## 🚀 Características Principales
 
-- ✅ **Pre-llenado automático** de 190+ campos del formulario
-- ✅ **Mapeo validado 1:1** sin duplicados ni conflictos  
-- ✅ **Envío automático de emails** con URLs personalizadas
-- ✅ **Imágenes corporativas embebidas** en emails (CID)
-- ✅ **Selección inteligente de archivos Excel** 
-- ✅ **Reportes detallados** de procesamiento
-- ✅ **Manejo robusto de errores** y validaciones
-- ✅ **100% éxito** confirmado en pruebas
-- ✅ **Sistema universal** - funciona con cualquier formulario JotForm
+- **Motor de Prefill**: Crea submissions prefilled automáticamente desde datos Excel
+- **Generación Excel**: Tabla profesional con empresa, email y links de prefill
+- **Templates Email**: Plantillas listas para copiar/pegar en emails corporativos
+- **Sin Autenticación Email**: Evita problemas con cuentas corporativas Microsoft
+- **Mapeo Inteligente**: Mapeo automático de campos Excel a JotForm
+- **Reportes Completos**: Estadísticas detalladas y logs de procesamiento
 
-## 📋 Requisitos
+## 📁 Estructura del Proyecto
 
-### Dependencias Python
+```
+jotform_final/
+├── src/                              # Código fuente
+│   ├── prefill_engine_v2.py         # Motor principal de prefill
+│   ├── excel_generator.py           # Generador de tabla Excel
+│   ├── run_excel_only.py            # Script solo para Excel
+│   ├── form_analyzer.py             # Analizador de formularios
+│   ├── config.py                    # Configuración del sistema
+│   └── configure_email.py           # Configurador de credenciales
+├── inputs/                           # Archivos Excel con datos de entrada
+├── outputs/                          # Reportes y archivos generados
+├── img/                              # Imágenes del proyecto
+└── requirements.txt                  # Dependencias Python
+```
+
+## 🛠️ Instalación
+
+1. **Clonar repositorio:**
+```bash
+git clone <repository-url>
+cd jotform_final
+```
+
+2. **Instalar dependencias:**
 ```bash
 pip install -r requirements.txt
 ```
 
-### Variables de Entorno
-1. Copiar `.env.example` a `.env`
-2. Configurar con tus credenciales reales:
+3. **Configurar credenciales:**
+```bash
+cd src
+python configure_email.py
+```
+
+## 🔧 Configuración
+
+### Variables de Entorno (.env)
 
 ```env
+# JotForm API Configuration
 JOTFORM_API_KEY=tu_api_key_aqui
-FORM_ID=tu_form_id_aqui
-GMAIL_USER=tu_email@gmail.com
-GMAIL_PASSWORD=tu_app_password_aqui
+FORM_ID=252195670354662
+
+# Email Configuration (opcional)
+GMAIL_USER=tu_email@dominio.com
+GMAIL_PASSWORD=tu_password_o_app_password
+SMTP_SERVER=smtp.office365.com
+SMTP_PORT=587
+
+# Project Settings
+PROJECT_NAME=5REC
 ```
 
-## 🗂️ Estructura del Proyecto
+### Formato Archivo Excel Input
 
-```
-jotform-5rec-integration/
-├── src/
-│   ├── config.py                 # Configuración centralizada
-│   ├── setup_validator.py        # Validador de configuración
-│   ├── form_analyzer.py          # Analizador de formulario
-│   ├── prefill_engine_v2.py      # ⭐ Motor principal de prefill
-│   └── configure_email.py        # Configurador de email interactivo
-├── inputs/                       # 📁 Archivos Excel con datos de organizaciones
-│   └── README.md                 # Documentación de formato de datos
-├── outputs/                      # 📊 Reportes y archivos de mapeo generados
-│   └── README.md                 # Documentación de archivos de salida
-├── img/                          # 🖼️ Imágenes corporativas para emails
-│   └── README.md                 # Documentación de imágenes requeridas
-├── CLAUDE.md                     # Documentación para Claude Code
-├── .env.example                  # Plantilla de variables de entorno
-└── requirements.txt              # Dependencias Python
-```
+El archivo Excel debe tener una hoja llamada **"📊 DATOS PREFILL"** con columnas como:
+- `Nombre Empresa/Organización`
+- `Email Destinatario`
+- Otros campos que mapeen a campos del formulario JotForm
 
-## 🚀 Uso Rápido
+## 📊 Uso Principal - Solo Excel (Recomendado)
 
-### 1. Instalar Dependencias
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Configurar Variables de Entorno
-```bash
-cp .env.example .env
-# Editar .env con tus credenciales, o usar:
-cd src
-python3 configure_email.py  # Configurador interactivo
-```
-
-### 3. Preparar Datos e Imágenes
-```bash
-# Colocar archivos Excel en inputs/
-# Colocar imágenes corporativas en img/ (opcional)
-```
-
-### 4. Validar Configuración
+### Opción 1: Script Dedicado
 ```bash
 cd src
-python3 setup_validator.py
+python run_excel_only.py
 ```
 
-### 5. Ejecutar Sistema Completo
+### Opción 2: Motor Principal
 ```bash
-python3 prefill_engine_v2.py
-# El sistema detectará automáticamente archivos Excel disponibles
+cd src
+python prefill_engine_v2.py
+# Seleccionar opción 1 (Solo Excel)
 ```
 
-## 📊 Flujo de Trabajo
+## 📋 Archivos Generados
 
-1. **Detección automática** de archivos Excel en carpeta `inputs/`
-2. **Selección inteligente** de archivo (manual o automática)
-3. **Carga mapeo** desde archivos existentes o generación automática
-4. **Valida mapeo** de campos Excel ↔ JotForm (215+ campos)
-5. **Crea submissions prefilled** usando JotForm API
-6. **Genera URLs únicas** de edición para cada organización
-7. **Envía emails HTML** con imágenes corporativas embebidas
-8. **Genera reportes** detallados en outputs/
+El sistema genera en `outputs/`:
 
-## 📧 Formato de Email Mejorado
+1. **`LINKS_PREFILL_YYYYMMDD_HHMMSS.xlsx`**
+   - Tabla con empresa, email, estado prefill y link
+   - Hoja de resumen con estadísticas
+   - Formato profesional con colores
 
-Los emails incluyen:
-- 🖼️ **Imágenes corporativas embebidas** (header y botón)
-- 🏢 Información personalizada de la organización
-- 📊 Número de campos pre-llenados
-- 🔗 URL única para completar el formulario
-- 📝 Instrucciones claras de uso
-- 🎨 Diseño HTML profesional responsive
-- ⚡ Compatibilidad CID para máxima compatibilidad con clientes de email
+2. **`EMAIL_TEMPLATES_YYYYMMDD_HHMMSS.txt`**
+   - Templates de email personalizados
+   - Listos para copiar/pegar
 
-## 📈 Resultados Típicos
+3. **`PREFILL_ENGINE_V2_REPORT_YYYYMMDD_HHMMSS.json`**
+   - Reporte técnico detallado
+   - Estadísticas de procesamiento
 
-- **Cobertura:** ~190 campos pre-llenados por organización
-- **Tasa de éxito:** 100% en pruebas
-- **Tiempo:** ~2-3 segundos por organización
-- **Formatos:** Reportes en JSON y Excel
+## 🔄 Flujo de Trabajo
 
-## 📋 Datos de Entrada
+1. **Preparar datos**: Colocar archivo Excel en `inputs/`
+2. **Ejecutar sistema**: `python run_excel_only.py`
+3. **Abrir Excel**: Revisar tabla generada en `outputs/`
+4. **Enviar emails**: Copiar links y usar email corporativo manualmente
+5. **Seguimiento**: Monitorear respuestas en JotForm
 
-### 📁 Directorio inputs/
-El sistema detecta automáticamente archivos `.xlsx` en la carpeta `inputs/`:
-- **Un archivo:** Selección automática
-- **Múltiples archivos:** Menú de selección interactivo
-- **Modo no-interactivo:** Selecciona el primero automáticamente
+## 📧 Envío Manual de Emails
 
-### Formato Excel Requerido
-El archivo Excel debe contener:
-- **Hoja:** "📊 DATOS PREFILL"
-- **Columnas obligatorias:**
-  - `Email Destinatario` - Email donde enviar el formulario
-  - `Nombre Empresa/Organización` - Nombre de la organización
-  - Campos adicionales según el formulario JotForm
+### Usar Tabla Excel:
+1. Abrir archivo `LINKS_PREFILL_*.xlsx`
+2. Copiar link de columna "Link de Prefill"
+3. Componer email en cliente corporativo
+4. Pegar link personalizado para cada empresa
 
-### Ejemplo de Estructura de Datos
-```
-| Email Destinatario    | Nombre Empresa/Organización | Nombre de la organización que reporta |
-|-----------------------|------------------------------|---------------------------------------|
-| empresa@email.com     | EMPRESA EJEMPLO S.A.S        | EMPRESA EJEMPLO S.A.S                 |
-| fundacion@email.com   | FUNDACIÓN EJEMPLO            | FUNDACIÓN EJEMPLO                     |
-```
+### Usar Templates:
+1. Abrir archivo `EMAIL_TEMPLATES_*.txt`
+2. Copiar template correspondiente a cada empresa
+3. Pegar en email corporativo
+4. Ajustar personalización si es necesario
 
-## 🖼️ Imágenes Corporativas
+## 🔍 Troubleshooting
 
-### Directorio img/
-Para emails con branding corporativo, colocar en `img/`:
-- **Header:** `nombre_header.png` - Imagen superior del email (600px ancho recomendado)
-- **Botón:** `nombre_boton.png` - Botón visual para acceder al formulario (200-300px ancho)
+### Error: No se encontraron archivos de mapeo
+- Ejecutar `form_analyzer.py` primero para generar mapeo
 
-### Para 5REC específicamente:
-- `5REC Franja.png` - Header corporativo
-- `Imagen 5REC formulario.png` - Botón del formulario
+### Error: No se encontraron archivos Excel
+- Verificar que hay archivos `.xlsx` en carpeta `inputs/`
+- Verificar que tienen hoja "📊 DATOS PREFILL"
 
-**Nota:** El sistema funciona sin imágenes, pero se ven mejor con ellas.
+### Links de prefill no funcionan
+- Verificar JOTFORM_API_KEY en configuración
+- Verificar FORM_ID correcto
+- Revisar logs en archivo de reporte JSON
 
-## 🔧 Troubleshooting
+## 🔐 Seguridad
 
-### Error: API Key inválido
-```bash
-# Verificar en .env
-JOTFORM_API_KEY=tu_api_key_correcto
-```
+- **API Keys**: Nunca commitear credenciales al repositorio
+- **Datos sensibles**: Archivos Excel con datos empresariales no se commitean
+- **Logs**: Los reportes pueden contener información sensible
 
-### Error: No se encuentran datos
-- Verificar que el archivo Excel esté en `inputs/`
-- Verificar estructura del archivo Excel
-- Debe tener hoja "📊 DATOS PREFILL"
-- Con columnas requeridas correctamente nombradas
+## 📈 Características Avanzadas
 
-### Error: No se encuentran archivos Excel
-```bash
-# Verificar carpeta inputs
-ls inputs/*.xlsx
-# Colocar archivos Excel en inputs/
-```
+### Mapeo Automático
+- Mapeo fuzzy entre columnas Excel y campos JotForm
+- Validación automática de tipos de datos
+- Limpieza inteligente de datos
 
-### Error: Imágenes no aparecen en email
-- Verificar que las imágenes estén en `img/`
-- Verificar nombres correctos de archivos
-- El sistema funciona sin imágenes (modo texto)
+### Procesamiento por Lotes
+- Procesamiento eficiente de múltiples organizaciones
+- Manejo de errores individual por empresa
+- Pausas automáticas entre requests API
 
-### Error: Email no se envía
-```bash
-# Verificar configuración Gmail en .env
-GMAIL_USER=tu_email@gmail.com
-GMAIL_PASSWORD=tu_app_password  # App password, NO contraseña normal
-```
+### Reportes Detallados
+- Estadísticas de éxito/fallo
+- Tracking de campos mapeados
+- Logs detallados para debugging
 
-## 🛠️ Desarrollo
-
-### Scripts Disponibles
-
-- **`configure_email.py`** - Configurador interactivo de credenciales de email
-- **`setup_validator.py`** - Validación completa de configuración y conectividad
-- **`form_analyzer.py`** - Análisis detallado de estructura del formulario y generación de mapeos
-- **`prefill_engine_v2.py`** - Motor principal con workflow completo y nuevas funcionalidades
-
-### Arquitectura
-
-El sistema utiliza:
-- **JotForm Submissions API** para crear formularios pre-llenados
-- **Detección automática de archivos** en carpetas estructuradas
-- **Mapeo inteligente** (SIMPLE_MAPPING o generación desde FORM_COMPLETE)
-- **Imágenes embebidas CID** para compatibilidad universal de email
-- **URLs de edición únicas** en lugar de parámetros GET
-- **Validaciones robustas** en cada paso del proceso
-- **Sistema universal** - adaptable a cualquier formulario JotForm
-
-## 🤝 Contribuir
+## 🤝 Contribución
 
 1. Fork del repositorio
-2. Crear branch: `git checkout -b feature/nueva-funcionalidad`
-3. Commit: `git commit -am 'Agregar nueva funcionalidad'`
-4. Push: `git push origin feature/nueva-funcionalidad`
-5. Pull Request
+2. Crear branch para feature
+3. Commit de cambios
+4. Push a branch
+5. Crear Pull Request
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT.
+Este proyecto es parte del sistema 5REC y está sujeto a las políticas de la organización.
 
-## 👥 Contacto
+---
 
-- **Proyecto:** 5REC (Reporte Empresarial Consolidado)
-- **Desarrollado para:** Integración JotForm
-- **Versión:** 2.0
+**Última actualización**: 2025-08-22  
+**Versión**: 2.0 - Sistema Excel sin envío automático de emails
