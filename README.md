@@ -4,11 +4,13 @@ Sistema automatizado de prefill para formularios JotForm del proyecto 5REC con g
 
 ## 🚀 Características Principales
 
-- **Motor de Prefill**: Crea submissions prefilled automáticamente desde datos Excel
+- **Motor de Prefill**: Crea submissions prefilled con mapeo mejorado sin truncamiento
+- **Sistema de Monitoreo Avanzado**: Tracking completo de respuestas con clasificación Prefill vs Manual
 - **Generación Excel**: Tabla profesional con empresa, email y links de prefill
 - **Templates Email**: Plantillas listas para copiar/pegar en emails corporativos
 - **Sin Autenticación Email**: Evita problemas con cuentas corporativas Microsoft
-- **Mapeo Inteligente**: Mapeo automático de campos Excel a JotForm
+- **Mapeo Inteligente**: Fuzzy matching mejorado sin límites de caracteres
+- **Filtrado Inteligente**: Exclusión automática de campos informativos en monitoreo
 - **Reportes Completos**: Estadísticas detalladas y logs de procesamiento
 
 ## 📁 Estructura del Proyecto
@@ -17,6 +19,7 @@ Sistema automatizado de prefill para formularios JotForm del proyecto 5REC con g
 jotform_final/
 ├── src/                              # Código fuente
 │   ├── prefill_engine_v2.py         # Motor principal de prefill
+│   ├── form_monitor_v2.py           # Sistema de monitoreo avanzado
 │   ├── excel_generator.py           # Generador de tabla Excel
 │   ├── run_excel_only.py            # Script solo para Excel
 │   ├── form_analyzer.py             # Analizador de formularios
@@ -105,13 +108,24 @@ El sistema genera en `outputs/`:
    - Reporte técnico detallado
    - Estadísticas de procesamiento
 
+4. **`ESTADO_EMPRESAS_YYYYMMDD_HHMMSS.xlsx`** (Monitoreo)
+   - Estado de cada empresa (Completado/Pendiente)
+   - Clasificación Prefill vs Manual
+   - Scores de matching fuzzy
+
+5. **`RESPUESTAS_DETALLADAS_YYYYMMDD_HHMMSS.xlsx`** (Monitoreo)
+   - Respuestas completas por empresa
+   - Solo campos que requieren respuesta
+   - Filtrado inteligente de elementos informativos
+
 ## 🔄 Flujo de Trabajo
 
 1. **Preparar datos**: Colocar archivo Excel en `inputs/`
 2. **Ejecutar sistema**: `python run_excel_only.py`
 3. **Abrir Excel**: Revisar tabla generada en `outputs/`
 4. **Enviar emails**: Copiar links y usar email corporativo manualmente
-5. **Seguimiento**: Monitorear respuestas en JotForm
+5. **Monitorear respuestas**: `python form_monitor_v2.py` para tracking avanzado
+6. **Análisis**: Revisar tablas de estado y respuestas detalladas
 
 ## 📧 Envío Manual de Emails
 
@@ -126,6 +140,21 @@ El sistema genera en `outputs/`:
 2. Copiar template correspondiente a cada empresa
 3. Pegar en email corporativo
 4. Ajustar personalización si es necesario
+
+## 📊 Monitoreo de Respuestas
+
+### Ejecutar Monitoreo:
+```bash
+cd src
+python form_monitor_v2.py
+```
+
+### Características del Monitoreo v2:
+- **Clasificación Automática**: Identifica respuestas Prefill vs Manual usando fuzzy matching
+- **Filtrado Inteligente**: Excluye campos informativos (títulos, instrucciones, botones)
+- **Tracking Completo**: Estado por empresa con fechas y scores de matching
+- **Tablas Detalladas**: Respuestas completas organizadas por empresa y pregunta
+- **Empresas Pendientes**: Identifica prefills enviados pero no respondidos
 
 ## 🔍 Troubleshooting
 
@@ -149,10 +178,11 @@ El sistema genera en `outputs/`:
 
 ## 📈 Características Avanzadas
 
-### Mapeo Automático
-- Mapeo fuzzy entre columnas Excel y campos JotForm
+### Mapeo Automático Mejorado
+- Mapeo fuzzy mejorado sin truncamiento de texto (removido límite [:50])
 - Validación automática de tipos de datos
 - Limpieza inteligente de datos
+- Mejor correlación entre campos Excel y JotForm
 
 ### Procesamiento por Lotes
 - Procesamiento eficiente de múltiples organizaciones
@@ -163,6 +193,9 @@ El sistema genera en `outputs/`:
 - Estadísticas de éxito/fallo
 - Tracking de campos mapeados
 - Logs detallados para debugging
+- Monitoreo avanzado con clasificación automática
+- Filtrado inteligente de campos informativos
+- Análisis de respuestas con scoring fuzzy
 
 ## 🤝 Contribución
 
@@ -178,5 +211,5 @@ Este proyecto es parte del sistema 5REC y está sujeto a las políticas de la or
 
 ---
 
-**Última actualización**: 2025-08-22  
-**Versión**: 2.0 - Sistema Excel sin envío automático de emails
+**Última actualización**: 2025-08-23  
+**Versión**: 2.0 - Sistema con monitoreo avanzado
