@@ -57,7 +57,7 @@ python configure_email.py
 ```env
 # JotForm API Configuration
 JOTFORM_API_KEY=tu_api_key_aqui
-FORM_ID=252195670354662
+FORM_ID=tu_form_id_aqui
 
 # Email Configuration (opcional)
 GMAIL_USER=tu_email@dominio.com
