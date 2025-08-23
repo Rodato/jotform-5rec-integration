@@ -89,8 +89,8 @@ class PrefillEngineV2:
                         # Use field name as key for mapping
                         self.clean_mapping[field_name] = qid
                     elif field_text:
-                        # Use field text as key (clean it)
-                        clean_text = field_text.replace('\n', ' ').strip()[:50]  # Limit length
+                        # Use field text as key (clean it) - sin limitar longitud
+                        clean_text = field_text.replace('\n', ' ').strip()
                         self.clean_mapping[clean_text] = qid
                 
                 print(f"✅ Mapeo generado desde datos completos: {len(self.clean_mapping)} campos")
